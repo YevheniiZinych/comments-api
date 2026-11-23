@@ -15,6 +15,9 @@ import { Comment } from './models/comment.model.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { GetCommentsDto } from './dto/get-comments.dto.js';
 
+import { sanitizeCommentHtml } from '../../common/utils/html-sanitizer.js';
+import { validateCommentHtml } from '../../common/utils/validate-comment-html.js';
+
 const COMMENTS_PER_PAGE = 25;
 
 @Injectable()
@@ -32,6 +35,15 @@ export class CommentsService {
   ) {}
 
   async create(dto: CreateCommentDto) {
+
+    if (!validateCommentHtml(dto.text)) {
+      throw new BadRequestException(
+        'Invalid HTML structure or unsupported tags. Allowed tags a, code, i, strong,',
+      );
+    }
+
+    const sanitizedText = sanitizeCommentHtml(dto.text);
+
     return this.sequelize.transaction(async (transaction) => {
 
       if (dto.parentId) {
@@ -73,7 +85,7 @@ export class CommentsService {
         {
           userId: user.id,
           parentId: dto.parentId ?? null,
-          text: dto.text,
+          text: sanitizedText,
         },
         { transaction },
       );
