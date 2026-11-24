@@ -11,22 +11,17 @@ import {
   UpdatedAt,
 } from 'sequelize-typescript';
 
-
 @Table({
   tableName: 'users',
   timestamps: true,
 })
-export class User extends Model<
-InferAttributes<User>,
-InferCreationAttributes<User>
-> {
+export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column({
-    type: DataType.UUID
+    type: DataType.UUID,
   })
   declare id: CreationOptional<string>;
-
 
   @Unique
   @Column({

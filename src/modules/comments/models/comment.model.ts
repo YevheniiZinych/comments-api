@@ -13,18 +13,18 @@ import {
 } from 'sequelize-typescript';
 
 import { User } from '../../users/models/user.model.js';
-import { type CreationOptional, InferAttributes, InferCreationAttributes, type NonAttribute } from 'sequelize';
-
+import {
+  type CreationOptional,
+  InferAttributes,
+  InferCreationAttributes,
+  type NonAttribute,
+} from 'sequelize';
 
 @Table({
   tableName: 'comments',
-  timestamps: true
+  timestamps: true,
 })
-export class Comment extends Model<
-  InferAttributes<Comment>,
-  InferCreationAttributes<Comment>
-> {
-
+export class Comment extends Model<InferAttributes<Comment>, InferCreationAttributes<Comment>> {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column({

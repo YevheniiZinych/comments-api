@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { User } from './modules/users/models/user.model.js';
-import { Comment } from './modules/comments/models/comment.model.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { appConfig, databaseConfig } from './config/configuration.js';
@@ -33,7 +31,7 @@ import { UsersModule } from './modules/users/users.module.js';
     QueueModule,
     EventsModule,
   ],
-  
+
   controllers: [AppController],
   providers: [AppService],
 })

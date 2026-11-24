@@ -9,44 +9,48 @@ import {
   IsUUID,
   Matches,
   MaxLength,
+  Length
 } from 'class-validator';
 
 export class CreateCommentDto {
-
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   @Matches(/^[a-zA-Z0-9]+$/, {
     message: 'Username must contain only Latin letters and numbers',
   })
-  username: string
+  username: string;
 
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsEmail()
   @IsNotEmpty()
   @MaxLength(255)
-  email: string
+  email: string;
 
-  @Transform(({value}) => value === '' ? null : value)
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsOptional()
-  @IsUrl(
-    {
-      require_protocol: true
-    }
-  )
+  @IsUrl({
+    require_protocol: true,
+  })
   @MaxLength(255)
-  homepage?: string | null
+  homepage?: string | null;
 
   @IsString()
   @IsNotEmpty()
-  text: string
+  text: string;
 
   @IsOptional()
   @IsUUID()
-  parentId?: string
+  parentId?: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  captchaId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Length(6, 6)
+  @Matches(/^[a-zA-Z0-9]+$/)
+  captchaText: string;
 }

@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { InjectModel } from '@nestjs/sequelize';
 import { InjectConnection } from '@nestjs/sequelize';
@@ -18,11 +14,12 @@ import { GetCommentsDto } from './dto/get-comments.dto.js';
 import { sanitizeCommentHtml } from '../../common/utils/html-sanitizer.js';
 import { validateCommentHtml } from '../../common/utils/validate-comment-html.js';
 
+import { CaptchaService } from '../captcha/captcha.service.js';
+
 const COMMENTS_PER_PAGE = 25;
 
 @Injectable()
 export class CommentsService {
-
   constructor(
     @InjectModel(Comment)
     private readonly commentModel: typeof Comment,
@@ -32,30 +29,34 @@ export class CommentsService {
 
     @InjectConnection()
     private readonly sequelize: Sequelize,
+
+    private readonly captchaService: CaptchaService,
   ) {}
 
   async create(dto: CreateCommentDto) {
-
+    // Проверяем на на валидность и допустипость тегов
     if (!validateCommentHtml(dto.text)) {
       throw new BadRequestException(
         'Invalid HTML structure or unsupported tags. Allowed tags a, code, i, strong,',
       );
     }
 
+    // Очищаем HTML
     const sanitizedText = sanitizeCommentHtml(dto.text);
 
-    return this.sequelize.transaction(async (transaction) => {
+    // Проверяем CAPTCHA
+    this.captchaService.verify(
+    dto.captchaId,
+    dto.captchaText,
+    );
 
+    // Сохраняем пользователя и комментарий
+    return this.sequelize.transaction(async (transaction) => {
       if (dto.parentId) {
-        const parentComment = await this.commentModel.findByPk(
-          dto.parentId,
-          { transaction },
-        );
-  
+        const parentComment = await this.commentModel.findByPk(dto.parentId, { transaction });
+
         if (!parentComment) {
-          throw new NotFoundException(
-            'Parent comment not found',
-          );
+          throw new NotFoundException('Parent comment not found');
         }
       }
 
@@ -69,7 +70,7 @@ export class CommentsService {
           homepage: dto.homepage ?? null,
         },
         transaction,
-      })
+      });
 
       if (!created) {
         await user.update(
@@ -95,96 +96,83 @@ export class CommentsService {
           {
             model: User,
             as: 'author',
-            attributes: [
-              'id',
-              'username',
-              'email',
-              'homepage',
-            ],
+            attributes: ['id', 'username', 'email', 'homepage'],
           },
         ],
         transaction,
       });
-    })
+    });
   }
 
   async findAll(query: GetCommentsDto) {
-    const {page = 1, sortBy = 'createdAt', order = 'DESC'} = query
+    const { page = 1, sortBy = 'createdAt', order = 'DESC' } = query;
 
     const offset = (page - 1) * COMMENTS_PER_PAGE;
 
-    const orderOptions = 
-      sortBy === "createdAt"
-      ? [['createdAt', order], ['id', 'ASC']]
-      : [
-          [
-            {model: User, as: 'author'},
-            sortBy,
-            order
-          ],
-        ['id', 'ASC']
-      ]
+    const orderOptions =
+      sortBy === 'createdAt'
+        ? [
+            ['createdAt', order],
+            ['id', 'ASC'],
+          ]
+        : [
+            [{ model: User, as: 'author' }, sortBy, order],
+            ['id', 'ASC'],
+          ];
 
-      const {rows, count} = await this.commentModel.findAndCountAll({
-        where: {
-          parentId: null
+    const { rows, count } = await this.commentModel.findAndCountAll({
+      where: {
+        parentId: null,
+      },
+
+      include: [
+        {
+          model: User,
+          as: 'author',
+          attributes: ['id', 'username', 'email', 'homepage'],
         },
+      ],
 
-        include: [
-          {
-            model: User,
-            as: 'author',
-            attributes: [
-              'id',
-              'username',
-              'email',
-              'homepage'
-            ]
-          }
-        ],
+      order: orderOptions as any,
+      limit: COMMENTS_PER_PAGE,
+      offset,
+      distinct: true,
+    });
 
-        order: orderOptions as any,
-        limit: COMMENTS_PER_PAGE,
-        offset,
-        distinct: true
-      })
+    if (!rows.length) {
+      return {
+        data: [],
+        meta: {
+          total: count,
+          page,
+          limit: COMMENTS_PER_PAGE,
+          totalPages: Math.ceil(count / COMMENTS_PER_PAGE),
+        },
+      };
+    }
 
-      if (!rows.length) {
-        return {
-          data: [],
-          meta: {
-            total: count,
-            page,
-            limit: COMMENTS_PER_PAGE,
-            totalPages: Math.ceil(count / COMMENTS_PER_PAGE),
-          },
-        };
-      }
-
-      // Получаем ID корневых комментариев
-      const rootIds = rows.map((comment) => comment.id);
+    // Получаем ID корневых комментариев
+    const rootIds = rows.map((comment) => comment.id);
 
     //Получаем все вложенные комментарии
-        const descendants = await this.getDescendants(rootIds);
+    const descendants = await this.getDescendants(rootIds);
 
-        // Преобразуем результат в дерево
-        const data = this.buildCommentTree(rows, descendants);
+    // Преобразуем результат в дерево
+    const data = this.buildCommentTree(rows, descendants);
 
-        return {
-          data,
-          meta: {
-            total: count,
-            page,
-            limit: COMMENTS_PER_PAGE,
-            totalPages: Math.ceil(count / COMMENTS_PER_PAGE),
-          },
-        };
+    return {
+      data,
+      meta: {
+        total: count,
+        page,
+        limit: COMMENTS_PER_PAGE,
+        totalPages: Math.ceil(count / COMMENTS_PER_PAGE),
+      },
+    };
   }
 
-  
-    private async getDescendants(rootIds: string[]) {
-
-  const sql = `
+  private async getDescendants(rootIds: string[]) {
+    const sql = `
     WITH RECURSIVE comment_tree AS (
 
       -- Первый уровень: непосредственные ответы
@@ -224,15 +212,15 @@ export class CommentsService {
     ORDER BY c."createdAt" ASC;
   `;
 
-  return this.sequelize.query(sql, {
-    replacements: { rootIds },
-    type: QueryTypes.SELECT,
-    nest: true,
-  });
+    return this.sequelize.query(sql, {
+      replacements: { rootIds },
+      type: QueryTypes.SELECT,
+      nest: true,
+    });
   }
 
   private buildCommentTree(roots: Comment[], descendants: any[]) {
-    const commentMap = new Map<string, any>()
+    const commentMap = new Map<string, any>();
 
     // Преобразуем корневые комментарии
     // в обычные объекты и добавляем replies
@@ -241,19 +229,19 @@ export class CommentsService {
         ...comment.get({ plain: true }),
         replies: [],
       };
-  
+
       commentMap.set(node.id, node);
-  
+
       return node;
     });
-    
+
     // Добавляем потомков в Map
     for (const comment of descendants) {
       const node = {
         ...comment,
         replies: [],
       };
-  
+
       commentMap.set(node.id, node);
     }
 
@@ -262,16 +250,14 @@ export class CommentsService {
       if (!node.parentId) {
         continue;
       }
-  
+
       const parent = commentMap.get(node.parentId);
-  
+
       if (parent) {
         parent.replies.push(node);
       }
     }
 
-
     return rootNodes;
   }
-
 }

@@ -4,7 +4,6 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { User } from '../modules/users/models/user.model.js';
 import { Comment } from '../modules/comments/models/comment.model.js';
 
-
 @Module({
   imports: [
     SequelizeModule.forRootAsync({
@@ -18,7 +17,7 @@ import { Comment } from '../modules/comments/models/comment.model.js';
         database: config.getOrThrow<string>('database.name'),
         models: [User, Comment],
         autoLoadModels: true,
-        synchronize: true,
+        synchronize: false,
       }),
     }),
   ],

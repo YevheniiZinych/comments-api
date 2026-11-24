@@ -1,11 +1,4 @@
-
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 
 import { CommentsService } from './comments.service.js';
 
@@ -14,10 +7,7 @@ import { GetCommentsDto } from './dto/get-comments.dto.js';
 
 @Controller('comments')
 export class CommentsController {
-
-  constructor(
-    private readonly commentsService: CommentsService,
-  ) {}
+  constructor(private readonly commentsService: CommentsService) {}
 
   // Получение списка комментариев
   @Get()

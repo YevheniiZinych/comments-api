@@ -1,12 +1,6 @@
-
 import { Parser } from 'htmlparser2';
 
-const ALLOWED_TAGS = new Set([
-  'a',
-  'code',
-  'i',
-  'strong',
-]);
+const ALLOWED_TAGS = new Set(['a', 'code', 'i', 'strong']);
 
 const VOID_TAGS = new Set([
   'area',
@@ -72,4 +66,3 @@ export function validateCommentHtml(html: string): boolean {
 
   return isValid && stack.length === 0;
 }
-
