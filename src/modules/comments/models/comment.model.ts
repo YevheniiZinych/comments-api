@@ -11,14 +11,14 @@ import {
   CreatedAt,
   UpdatedAt,
 } from 'sequelize-typescript';
-
-import { User } from '../../users/models/user.model.js';
 import {
   type CreationOptional,
   InferAttributes,
   InferCreationAttributes,
   type NonAttribute,
 } from 'sequelize';
+import { User } from '../../users/models/user.model.js';
+import type { Attachment } from '../../uploads/models/attachment.model.js';
 
 @Table({
   tableName: 'comments',
@@ -60,6 +60,8 @@ export class Comment extends Model<InferAttributes<Comment>, InferCreationAttrib
     as: 'replies',
   })
   declare replies: NonAttribute<Comment[]>;
+
+  declare attachments: NonAttribute<Attachment[]>;
 
   @Column({
     type: DataType.TEXT,

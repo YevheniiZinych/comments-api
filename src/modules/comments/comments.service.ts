@@ -7,6 +7,7 @@ import { Sequelize, QueryTypes } from 'sequelize';
 
 import { User } from '../users/models/user.model.js';
 import { Comment } from './models/comment.model.js';
+import { Attachment } from '../uploads/models/attachment.model.js';
 
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { GetCommentsDto } from './dto/get-comments.dto.js';
@@ -15,6 +16,7 @@ import { sanitizeCommentHtml } from '../../common/utils/html-sanitizer.js';
 import { validateCommentHtml } from '../../common/utils/validate-comment-html.js';
 
 import { CaptchaService } from '../captcha/captcha.service.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 
 const COMMENTS_PER_PAGE = 25;
 
@@ -27,13 +29,18 @@ export class CommentsService {
     @InjectModel(User)
     private readonly userModel: typeof User,
 
+    @InjectModel(Attachment)
+    private readonly attachmentModel: typeof Attachment,
+
     @InjectConnection()
     private readonly sequelize: Sequelize,
 
     private readonly captchaService: CaptchaService,
+
+    private readonly uploadsService: UploadsService,
   ) {}
 
-  async create(dto: CreateCommentDto) {
+  async create(dto: CreateCommentDto, file?: Express.Multer.File) {
     // Проверяем на на валидность и допустипость тегов
     if (!validateCommentHtml(dto.text)) {
       throw new BadRequestException(
@@ -50,7 +57,12 @@ export class CommentsService {
     dto.captchaText,
     );
 
-    // Сохраняем пользователя и комментарий
+    // Сохраняем файл, если он передан
+    const storedFile = file ? await this.uploadsService.saveFile(file) : null
+
+    try {
+      
+      // Сохраняем пользователя и комментарий
     return this.sequelize.transaction(async (transaction) => {
       if (dto.parentId) {
         const parentComment = await this.commentModel.findByPk(dto.parentId, { transaction });
@@ -91,6 +103,16 @@ export class CommentsService {
         { transaction },
       );
 
+      if(storedFile) {
+        await this.attachmentModel.create(
+          {
+            commentId: comment.id,
+            ...storedFile
+          },
+          { transaction },
+        )
+      }
+
       return this.commentModel.findByPk(comment.id, {
         include: [
           {
@@ -98,10 +120,25 @@ export class CommentsService {
             as: 'author',
             attributes: ['id', 'username', 'email', 'homepage'],
           },
+          {
+            model: Attachment,
+            as: 'attachments',
+          },
         ],
         transaction,
       });
     });
+    } catch (error) {
+      // Если запись в БД не удалась,
+    // удаляем ранее сохранённый файл
+    if (storedFile) {
+      await this.uploadsService.removeFile(storedFile.path);
+    }
+
+    throw error;
+    }
+
+    
   }
 
   async findAll(query: GetCommentsDto) {
@@ -159,6 +196,8 @@ export class CommentsService {
 
     // Преобразуем результат в дерево
     const data = this.buildCommentTree(rows, descendants);
+
+    await this.attachFilesToTree(data);
 
     return {
       data,
@@ -259,5 +298,55 @@ export class CommentsService {
     }
 
     return rootNodes;
+  }
+
+  private async attachFilesToTree(
+    roots: any[],
+  ) {
+    const commentIds: string[] = [];
+
+    const collectIds = (nodes: any[]) => {
+      for (const node of nodes) {
+        commentIds.push(node.id);
+        collectIds(node.replies ?? []);
+      }
+    };
+
+    collectIds(roots);
+  
+    const attachments = await this.attachmentModel.findAll({
+      where: {
+        commentId: commentIds,
+      },
+      attributes: [
+        'id',
+        'commentId',
+        'originalName',
+        'mimeType',
+        'size',
+      ],
+    });
+  
+    const attachmentMap = new Map<string, any[]>();
+  
+    for (const attachment of attachments) {
+      const item = attachment.get({ plain: true });
+  
+      const existing = attachmentMap.get(item.commentId) ?? [];
+  
+      existing.push(item);
+  
+      attachmentMap.set(item.commentId, existing);
+    }
+  
+    const addAttachments = (nodes: any[]) => {
+      for (const node of nodes) {
+        node.attachments = attachmentMap.get(node.id) ?? [];
+  
+        addAttachments(node.replies ?? []);
+      }
+    };
+  
+    addAttachments(roots);
   }
 }

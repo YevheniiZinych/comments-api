@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { CommentsService } from './comments.service.js';
 
@@ -17,7 +18,8 @@ export class CommentsController {
 
   // Создание комментария
   @Post()
-  create(@Body() dto: CreateCommentDto) {
-    return this.commentsService.create(dto);
+  @UseInterceptors(FileInterceptor('file'))
+  create(@Body() dto: CreateCommentDto, @UploadedFile() file?: Express.Multer.File) {
+    return this.commentsService.create(dto, file);
   }
 }
