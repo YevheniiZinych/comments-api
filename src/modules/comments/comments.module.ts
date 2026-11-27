@@ -8,9 +8,10 @@ import { CommentsService } from './comments.service.js';
 import { CaptchaModule } from '../captcha/captcha.module.js';
 import { Attachment } from '../uploads/models/attachment.model.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
+import { EventsModule } from '../events/events.module.js';
 
 @Module({
-  imports: [SequelizeModule.forFeature([Comment, User, Attachment]), CaptchaModule, UploadsModule],
+  imports: [SequelizeModule.forFeature([Comment, User, Attachment]), CaptchaModule, UploadsModule, EventsModule],
   providers: [CommentsService],
   controllers: [CommentsController],
   exports: [CommentsService],

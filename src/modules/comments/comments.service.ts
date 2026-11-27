@@ -18,6 +18,8 @@ import { validateCommentHtml } from '../../common/utils/validate-comment-html.js
 import { CaptchaService } from '../captcha/captcha.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 
+import { EventsGateway } from '../events/events.gateway.js';
+
 const COMMENTS_PER_PAGE = 25;
 
 @Injectable()
@@ -38,6 +40,8 @@ export class CommentsService {
     private readonly captchaService: CaptchaService,
 
     private readonly uploadsService: UploadsService,
+
+    private readonly eventsGateway: EventsGateway
   ) {}
 
   async create(dto: CreateCommentDto, file?: Express.Multer.File) {
@@ -60,10 +64,9 @@ export class CommentsService {
     // Сохраняем файл, если он передан
     const storedFile = file ? await this.uploadsService.saveFile(file) : null
 
-    try {
-      
+    try {  
       // Сохраняем пользователя и комментарий
-    return this.sequelize.transaction(async (transaction) => {
+    const saved = await this.sequelize.transaction(async (transaction) => {
       if (dto.parentId) {
         const parentComment = await this.commentModel.findByPk(dto.parentId, { transaction });
 
@@ -93,7 +96,7 @@ export class CommentsService {
           { transaction },
         );
       }
-
+      // Содаем комент
       const comment = await this.commentModel.create(
         {
           userId: user.id,
@@ -128,13 +131,18 @@ export class CommentsService {
         transaction,
       });
     });
+
+    if (saved) {
+      this.eventsGateway.commentCreated(saved);
+    }
+
+    return saved
     } catch (error) {
       // Если запись в БД не удалась,
     // удаляем ранее сохранённый файл
     if (storedFile) {
       await this.uploadsService.removeFile(storedFile.path);
     }
-
     throw error;
     }
 
