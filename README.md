@@ -6,6 +6,10 @@ Backend часть SPA-приложения для комментариев с �
 
 - base URL - [https://products-api-1kn6.onrender.com]
 
+## SWAGGER url
+
+- URL - [https://comments-api-m5oh.onrender.com/api/docs]
+
 ## Возможности
 
 - Создание комментариев и ответов любой глубины вложенности.
