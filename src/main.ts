@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { WsAdapter } from '@nestjs/platform-ws';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
 
 async function start() {
@@ -21,6 +22,20 @@ async function start() {
       transform: true,
     }),
   );
+
+  const configSwagger = new DocumentBuilder()
+  .setTitle('Comments API')
+  .setDescription(
+    'API для SPA приложения комментариев. Поддерживает создание комментариев и ответов, CAPTCHA, загрузку файлов и получение вложенных комментариев.',
+  )
+  .setVersion('1.0')
+  .build();
+
+  const document = SwaggerModule.createDocument(app, configSwagger);
+
+  SwaggerModule.setup('docs', app, document, {
+    useGlobalPrefix: true,
+  });
 
   await app.listen(port, () => console.log(`Server started on port: ${port}`));
 }

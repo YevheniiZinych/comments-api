@@ -47,5 +47,5 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
   declare createdAt: CreationOptional<Date>;
 
   @UpdatedAt
-  declare updatedAtAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 }

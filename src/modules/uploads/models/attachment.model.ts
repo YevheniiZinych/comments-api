@@ -73,7 +73,4 @@ export class Attachment extends Model<
     allowNull: false,
   })
   declare path: string;
-
-  @CreatedAt
-  declare createdAt: CreationOptional<Date>;
 }

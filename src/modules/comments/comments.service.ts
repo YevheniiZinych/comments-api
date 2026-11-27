@@ -186,13 +186,13 @@ export class CommentsService {
 
     if (!rows.length) {
       return {
-        data: [],
         meta: {
           total: count,
           page,
           limit: COMMENTS_PER_PAGE,
           totalPages: Math.ceil(count / COMMENTS_PER_PAGE),
         },
+        data: [],
       };
     }
 

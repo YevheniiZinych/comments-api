@@ -15,6 +15,14 @@ import * as path from 'path';
 
 import { Attachment } from './models/attachment.model.js';
 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
+
+@ApiTags('Uploads')
 @Controller('uploads')
 export class UploadsController {
 
@@ -24,6 +32,32 @@ export class UploadsController {
   ) {}
 
   @Get(':id')
+  @ApiOperation({
+    summary: 'Получить загруженный файл',
+    description:
+      'Возвращает файл по идентификатору вложения.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID вложения.',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Файл успешно получен.',
+    content: {
+      'application/octet-stream': {
+        schema: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Файл не найден.',
+  })
   async getFile(
     @Param('id') id: string,
   ): Promise<StreamableFile> {
