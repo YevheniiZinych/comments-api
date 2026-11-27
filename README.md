@@ -2,6 +2,10 @@
 
 Backend часть SPA-приложения для комментариев с вложенными ответами. Реализована на NestJS, TypeScript, Sequelize и PostgreSQL.
 
+## API host url
+
+- base URL - [https://products-api-1kn6.onrender.com]
+
 ## Возможности
 
 - Создание комментариев и ответов любой глубины вложенности.
