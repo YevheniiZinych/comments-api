@@ -81,8 +81,7 @@ ER-диаграмма модели базы данных находится в �
 ### 1. Клонирование репозитория
 
 ```bash
-git clone <BACKEND_REPOSITORY_URL>
-cd <BACKEND_DIRECTORY>
+git clone <https://github.com/YevheniiZinych/comments-api.git>
 ```
 
 ### 2. Установка зависимостей
@@ -91,13 +90,23 @@ cd <BACKEND_DIRECTORY>
 npm install
 ```
 
-### 3. Настройка переменных окружения
+### 3. Set up your local PostgreSQL database
+
+- Create a new database (e.g. `comments`)
+
+### 4. Настройка переменных окружения
 
 Создайте `.env` на основе используемого в проекте файла конфигурации.
 
+   - POSTGRES_HOST=localhost
+   - POSTGRES_PORT=yourpotr
+   - POSTGRES_USER=youruser
+   - POSTGRES_PASSWORD=yourpassword
+   - POSTGRES_DB=yourdbname
+
 В `.env` должны быть заданы параметры приложения и подключения к PostgreSQL. Названия переменных необходимо сверить с `src/config/configuration.ts` и `src/config/validation.ts`.
 
-### 4. Запуск PostgreSQL
+### 5. Запуск PostgreSQL
 
 Запустите PostgreSQL через Docker Compose, `docker-compose.yml` включён в репозиторий:
 
@@ -107,12 +116,12 @@ docker compose up -d
 
 Проверьте, что контейнер PostgreSQL запущен и параметры подключения в `.env` соответствуют настройкам контейнера.
 
-### 5. Запуск backend
+### 6. Запуск backend
 
-Запуск апректа в режиме разработки
+Запуск проекта в режиме разработки
 
 ```bash
-npm run start:dev
+npm run dev
 ```
 
 ## API
