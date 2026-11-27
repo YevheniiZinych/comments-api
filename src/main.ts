@@ -37,7 +37,7 @@ async function start() {
     useGlobalPrefix: true,
   });
 
-  await app.listen(port, () => console.log(`Server started on port: ${port}`));
+  await app.listen(port, '0.0.0.0', () => console.log(`Server started on port: ${port}`));
 }
 
 start().catch((error: unknown) => {
